@@ -1,0 +1,1 @@
+{"buffer_size": 10000.0, "batch_size": 512, "entropy_coeff": 0.012665339835556474, "obs_dim": 3, "state_dim": 3, "act_dim": 1, "act_scaling": 2, "lr_actor": 1.0483405126385448e-05, "hidden_dim_actor": 256, "depth_actor": 3, "lr_critic": 6.306919029157998e-05, "hidden_dim_critic": 512, "depth_critic": 3}
