@@ -12,7 +12,7 @@ from torchrl.objectives import SoftUpdate
 
 device = tr.device('cuda' if tr.cuda.is_available() else 'cpu')
 
-def create_ActorCritic(config):
+def create_ActorCritic(config, action_spec):
     module_policy = NormalParamWrapper(
         MLP(config['obs_dim'], 2*config['act_dim'],
             depth=config['depth_actor'],
@@ -27,6 +27,7 @@ def create_ActorCritic(config):
         out_keys=['action'],
         distribution_class=TanhNormal,
         return_log_prob=True,
+        spec=action_spec,
     )
     module_value = MLP(config['obs_dim'] + config['act_dim'],
                        1,
@@ -44,9 +45,9 @@ def create_ActorCritic(config):
 
 
 class SAC:
-    def __init__(self, config):
+    def __init__(self, config, action_spec):
         self.batch_size = config['batch_size']
-        self.actor, self.critic = create_ActorCritic(config)
+        self.actor, self.critic = create_ActorCritic(config, action_spec)
 
         self.replay_buffer = ReplayBuffer(
             storage=LazyMemmapStorage(max_size=config['buffer_size']),
@@ -56,6 +57,7 @@ class SAC:
             qvalue_network=self.critic,
             alpha_init=config['entropy_coeff'],
             target_entropy=-config['act_dim'],
+            fixed_alpha=config['fixed_entropy'],
         )
         self.optimizer_actor = tr.optim.Adam(
             self.actor.parameters(),

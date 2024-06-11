@@ -32,13 +32,13 @@ def objective(config):
         collector = SyncDataCollector(
             env,
             policy=agent.actor,
-            frames_per_batch=1,
+            frames_per_batch=env_config['frames_per_batch'],
             total_frames=env_config['n_total'],
             device=device,
         )
         reward = 0
         for i, data in enumerate(collector):
-            reward += data['next', 'reward'].item()
+            reward += tr.mean(data['next', 'reward']).item()
             agent.replay_buffer.extend(data)
             loss_vals = agent.update()
             if data['next', 'terminated'] or data['next', 'truncated']:

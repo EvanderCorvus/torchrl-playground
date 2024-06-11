@@ -21,7 +21,7 @@ env = TransformedEnv(
     device=device
 )
 
-agent = SAC(config)
+agent = SAC(config, env.action_spec)
 collector = SyncDataCollector(
     env,
     policy=agent.actor,
@@ -47,10 +47,20 @@ record_env = TransformedEnv(
 if __name__ == "__main__":
     for i, data in tqdm(enumerate(collector)):
         agent.replay_buffer.extend(data)
+
         if len(agent.replay_buffer) < config['batch_size']: continue
+
+        for _ in range(config['n_updates']-1):
+            loss_vals = agent.update()
+
         loss_vals = agent.update()
-        writer.add_scalar("loss/actor", loss_vals["loss_actor"].item(), i)
-        writer.add_scalar("loss/critic", loss_vals["loss_qvalue"].item(), i)
+
+        writer.add_scalar("loss/actor",
+                          loss_vals["loss_actor"].item(), i)
+        writer.add_scalar("loss/critic",
+                          loss_vals["loss_qvalue"].item(), i)
+        writer.add_scalar("mean_batch_reward",
+                          tr.mean(data['next', 'reward']).item(), i)
 
     writer.close()
     with tr.no_grad():
