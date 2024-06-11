@@ -67,20 +67,22 @@ class SAC:
         )
         self.updater = SoftUpdate(
             self.criterion,
-            eps=0.99,
+            eps=config['polyak_tau'],
         )
 
     def update(self):
+        self.optimizer_actor.zero_grad()
+        self.optimizer_critic.zero_grad()
+
         sample = self.replay_buffer.sample(self.batch_size).to(device)
 
         loss_vals = self.criterion(sample)
-        loss_vals['loss_actor'].backward()
-        self.optimizer_actor.step()
-        self.optimizer_actor.zero_grad()
 
         loss_vals['loss_qvalue'].backward()
         self.optimizer_critic.step()
-        self.optimizer_critic.zero_grad()
+
+        loss_vals['loss_actor'].backward()
+        self.optimizer_actor.step()
 
         self.updater.step()
 

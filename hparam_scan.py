@@ -22,7 +22,11 @@ env_config = hyperparams_dict('Environment')
 def objective(config):
     try:
         device = tr.device('cuda' if tr.cuda.is_available() else 'cpu')
-        env = TransformedEnv(GymEnv("Pendulum-v1"), StepCounter(max_steps=env_config['n_steps']), device=device)
+        env = TransformedEnv(
+            GymEnv("Pendulum-v1"),
+            StepCounter(max_steps=env_config['n_steps']),
+            device=device
+        )
 
         agent = SAC(config)
         collector = SyncDataCollector(
