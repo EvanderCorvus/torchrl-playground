@@ -20,3 +20,6 @@ env = TransformedEnv(
     StepCounter(max_steps=env_config['n_steps']),
     device=device
 )
+agent = SAC(config, env.action_spec)
+print(agent.actor.spec._specs['action'].high)
+

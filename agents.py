@@ -9,8 +9,10 @@ from torchrl.modules import SafeModule
 from torchrl.data.replay_buffers import LazyMemmapStorage, ReplayBuffer
 from torchrl.objectives.sac import SACLoss
 from torchrl.objectives import SoftUpdate
+from torchrl.data.replay_buffers.samplers import SamplerWithoutReplacement
 
 device = tr.device('cuda' if tr.cuda.is_available() else 'cpu')
+
 
 def create_ActorCritic(config, action_spec):
     module_policy = NormalParamWrapper(
@@ -23,11 +25,15 @@ def create_ActorCritic(config, action_spec):
     module_policy = tdmod(module_policy, in_keys=['observation'], out_keys=['loc', 'scale'])
     td_module_policy = ProbabilisticActor(
         module=module_policy,
+        spec=action_spec,
         in_keys=['loc', 'scale'],
         out_keys=['action'],
         distribution_class=TanhNormal,
+        distribution_kwargs={
+            "min": action_spec.space.low,
+            "max": action_spec.space.high,
+        },
         return_log_prob=True,
-        spec=action_spec,
     )
     module_value = MLP(config['obs_dim'] + config['act_dim'],
                        1,
@@ -51,13 +57,16 @@ class SAC:
 
         self.replay_buffer = ReplayBuffer(
             storage=LazyMemmapStorage(max_size=config['buffer_size']),
+            sampler=SamplerWithoutReplacement(),
+            batch_size=config['batch_size'],
         )
         self.criterion = SACLoss(
             actor_network=self.actor,
             qvalue_network=self.critic,
             alpha_init=config['entropy_coeff'],
-            target_entropy=-config['act_dim'],
+            #target_entropy=-config['act_dim'],
             fixed_alpha=config['fixed_entropy'],
+            action_spec=action_spec,
         )
         self.optimizer_actor = tr.optim.Adam(
             self.actor.parameters(),
