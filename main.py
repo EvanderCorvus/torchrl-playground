@@ -3,6 +3,7 @@ import torch as tr
 from agents import SAC
 from tensordict import TensorDict
 from utils.utils import *
+from utils.train_utils import train_loop
 from torchrl.envs import GymEnv
 from torchrl.envs import GymEnv, StepCounter, TransformedEnv
 from torchrl.collectors import SyncDataCollector
@@ -10,9 +11,15 @@ from tqdm import tqdm
 from torchrl.record import CSVLogger, VideoRecorder
 from torch.utils.tensorboard import SummaryWriter
 import os
+from dotenv import load_dotenv
 
-
+load_dotenv('utils/.env')
 device = tr.device('cuda' if tr.cuda.is_available() else 'cpu')
+seed = os.getenv('seed')
+
+np.random.seed(int(seed))
+tr.manual_seed(int(seed))
+
 config = hyperparams_dict('SAC')
 env_config = hyperparams_dict('Environment')
 env = TransformedEnv(
@@ -45,23 +52,8 @@ record_env = TransformedEnv(
 )
 
 if __name__ == "__main__":
-    for i, data in tqdm(enumerate(collector)):
-        agent.replay_buffer.extend(data)
-        if len(agent.replay_buffer) < config['batch_size']: continue
 
-        for _ in range(config['n_updates']-1):
-            loss_vals = agent.update()
-
-        loss_vals = agent.update()
-
-        writer.add_scalar("loss/actor",
-                          loss_vals["loss_actor"].item(), i)
-        writer.add_scalar("loss/critic",
-                          loss_vals["loss_qvalue"].item(), i)
-        writer.add_scalar("mean_batch_reward",
-                          tr.mean(data['next', 'reward']).item(), i)
-        #writer.add_scalar('action',
-                          #data['action'][-1].item(), i)
+    train_loop(collector, agent, config, writer)
     writer.close()
 
     with tr.no_grad():

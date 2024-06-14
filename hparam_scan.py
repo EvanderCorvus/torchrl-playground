@@ -3,6 +3,7 @@ from utils.utils import *
 from ray import train, tune
 import json
 from ray.tune.search.optuna import OptunaSearch
+from utils.train_utils import train_loop
 #from ray.tune.schedulers import ASHAScheduler
 from torchrl.collectors import SyncDataCollector
 import os
@@ -28,7 +29,7 @@ def objective(config):
             device=device
         )
 
-        agent = SAC(config)
+        agent = SAC(config, env.action_spec)
         collector = SyncDataCollector(
             env,
             policy=agent.actor,
@@ -36,15 +37,9 @@ def objective(config):
             total_frames=env_config['n_total'],
             device=device,
         )
-        reward = 0
-        for i, data in enumerate(collector):
-            reward += tr.mean(data['next', 'reward']).item()
-            agent.replay_buffer.extend(data)
-            loss_vals = agent.update()
-            if data['next', 'terminated'] or data['next', 'truncated']:
-                loss = loss_vals['loss_actor'].item() + loss_vals['loss_qvalue'].item()
-                train.report({"loss": loss,
-                              "reward": reward})
+        reward = train_loop(collector, agent, config, scan=True)
+
+        return reward
 
     except Exception as e: raise e
 

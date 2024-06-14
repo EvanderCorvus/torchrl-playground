@@ -10,9 +10,11 @@ from tqdm import tqdm
 from torchrl.record import CSVLogger, VideoRecorder
 from torch.utils.tensorboard import SummaryWriter
 import os
+from tensordict import TensorDict
 
 
 device = tr.device('cuda' if tr.cuda.is_available() else 'cpu')
+
 config = hyperparams_dict('SAC')
 env_config = hyperparams_dict('Environment')
 env = TransformedEnv(
@@ -21,5 +23,13 @@ env = TransformedEnv(
     device=device
 )
 agent = SAC(config, env.action_spec)
-print(agent.actor.spec._specs['action'].high)
+
+state = tr.rand(1, 3)
+obs = TensorDict({'observation': state},
+                 batch_size=1,
+                 device=device)
+for _ in range(3):
+    action = agent.actor(obs)
+    print(action)
+    break
 
